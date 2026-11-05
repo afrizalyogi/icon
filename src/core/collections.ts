@@ -5,7 +5,6 @@ import { glob } from 'tinyglobby'
 import type { IconifyIcon, IconifyJSON } from '@iconify/types'
 import { parseSVGContent, convertParsedSVG } from '@iconify/utils/lib/svg/parse'
 import { isPackageExists, resolveModule } from 'local-pkg'
-import type { Config as SvgoConfig } from 'svgo'
 import { collectionNames } from '../collection-names'
 import type { CustomCollection, ServerBundleOptions, RemoteCollection } from './types'
 
@@ -71,12 +70,7 @@ async function parseCustomCollection(
     // TODO: next major flip this
     normalizeIconName = true,
     recursive = false,
-    svgo = false,
   } = collection
-
-  const optimizeSvg = svgo
-    ? await loadSvgo(collection.prefix, svgo === true ? undefined : svgo)
-    : undefined
 
   const pattern = recursive ? '**/*.svg' : '*.svg'
 
@@ -110,15 +104,6 @@ async function parseCustomCollection(
     const cleanupIdx = svg.indexOf('<svg')
     if (cleanupIdx > 0)
       svg = svg.slice(cleanupIdx)
-    if (optimizeSvg) {
-      try {
-        svg = optimizeSvg(svg)
-      }
-      catch (error) {
-        logger.error(`Nuxt Icon could not optimize the SVG content for icon \`${name}\` with SVGO`, error)
-        return null
-      }
-    }
     const data = convertParsedSVG(parseSVGContent(svg)!)
     if (!data) {
       logger.error(`Nuxt Icon could not parse the SVG content for icon \`${name}\``)
@@ -140,16 +125,7 @@ async function parseCustomCollection(
   }
   // @ts-expect-error remove extra properties
   delete result.dir
-  // @ts-expect-error remove extra properties
-  delete result.svgo
   return result
-}
-
-async function loadSvgo(prefix: string, config?: SvgoConfig): Promise<(svg: string) => string> {
-  const { optimize } = await import('svgo').catch(() => {
-    throw new Error(`Nuxt Icon custom collection \`${prefix}\` has \`svgo\` enabled, but the \`svgo\` package is not installed. Install it with \`npm i -D svgo\``)
-  })
-  return svg => optimize(svg, config).data
 }
 
 export async function discoverInstalledCollections(resolvePaths: string[]): Promise<ServerBundleOptions['collections']> {
