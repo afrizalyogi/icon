@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { CustomCollection } from '../src/core/types'
 import { NuxtIconModuleContext } from '../src/context'
+import { loadCustomCollection } from '../src/core/collections'
 
 const SVG = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M0 0h24v24H0z"/></svg>'
 
@@ -50,6 +51,9 @@ let root: string
 const appDir = () => join(root, 'app')
 const layerDir = () => join(root, 'layer')
 const outsideDir = () => join(root, 'outside')
+const svgoDir = () => join(root, 'svgo')
+
+const COLORED_SVG = '<svg viewBox="0 0 24 24"><!-- comment --><path fill="#f00" d="M0 0h24v24H0z"/></svg>'
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'nuxt-icon-custom-collections-'))
@@ -59,6 +63,8 @@ beforeAll(() => {
   writeIcon(join(appDir(), 'app/assets/icons'), 'app-only')
   writeIcon(join(layerDir(), 'app/assets/icons'), 'logo')
   writeIcon(outsideDir(), 'outside')
+  mkdirSync(svgoDir(), { recursive: true })
+  writeFileSync(join(svgoDir(), 'colored.svg'), COLORED_SVG)
 })
 
 afterAll(() => {
@@ -162,4 +168,28 @@ it('falls back to rootDir for a collection that no layer declared', async () => 
   const [loaded] = await context.loadCustomCollection()
 
   expect(Object.keys(loaded!.icons)).toEqual(['app-only'])
+})
+
+it('does not optimize custom icons by default', async () => {
+  const loaded = await loadCustomCollection({ prefix: 'svgo', dir: svgoDir() }, root)
+
+  expect(loaded.icons.colored!.body).toBe('<!-- comment --><path fill="#f00" d="M0 0h24v24H0z"/>')
+  expect(loaded).not.toHaveProperty('svgo')
+})
+
+it('optimizes custom icons with SVGO when `svgo` is enabled', async () => {
+  const loaded = await loadCustomCollection({ prefix: 'svgo', dir: svgoDir(), svgo: true }, root)
+
+  expect(loaded.icons.colored!.body).toBe('<path fill="red" d="M0 0h24v24H0z"/>')
+  expect(loaded).not.toHaveProperty('svgo')
+})
+
+it('passes a custom SVGO config', async () => {
+  const loaded = await loadCustomCollection({
+    prefix: 'svgo',
+    dir: svgoDir(),
+    svgo: { plugins: [{ name: 'removeAttrs', params: { attrs: 'fill' } }] },
+  }, root)
+
+  expect(loaded.icons.colored!.body).toBe('<!--comment--><path d="M0 0h24v24H0z"/>')
 })

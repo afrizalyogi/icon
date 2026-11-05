@@ -1,4 +1,5 @@
 import type { IconifyJSON } from '@iconify/types'
+import type { Config as SvgoConfig } from 'svgo'
 
 export interface CustomCollection extends Pick<IconifyJSON, 'prefix' | 'width' | 'height'> {
   dir: string
@@ -26,6 +27,16 @@ export interface CustomCollection extends Pick<IconifyJSON, 'prefix' | 'width' |
    * @default false
    */
   recursive?: boolean
+  /**
+   * Optimize the SVG files with [SVGO](https://github.com/svg/svgo) before adding them to the collection.
+   *
+   * Requires `svgo` to be installed in your project.
+   * Pass `true` to use SVGO's default preset, or an SVGO config object to customize it.
+   *
+   * @see https://github.com/nuxt/icon/issues/196
+   * @default false
+   */
+  svgo?: boolean | SvgoConfig
 }
 
 export interface RemoteCollection {
