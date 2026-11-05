@@ -8,7 +8,7 @@
     "preview": "vite preview --host"
   },
   "dependencies": {
-    "@iconify/vue": "^5.0.4",
+    "@iconify/vue": "^5.0.5",
     "vue": "^3.5.44"
   },
   "devDependencies": {
